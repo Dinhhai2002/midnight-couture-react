@@ -11,6 +11,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const { data: products = [], isLoading } = useQuery({
@@ -21,6 +23,43 @@ export default function Home() {
   const featuredProducts = products.slice(0, 4);
   const newArrivals = products.filter(product => product.new);
   const onSale = products.filter(product => product.sale);
+  
+  // Advertising Banner content
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const banners = [
+    {
+      title: "Summer Collection",
+      description: "Discover our new summer styles with up to 30% off",
+      cta: "Shop Now",
+      link: "/category/fashion",
+      bgColor: "from-orange-400 to-pink-500",
+      image: "/placeholder.svg",
+    },
+    {
+      title: "Premium Accessories",
+      description: "Elevate your look with our exclusive luxury accessories",
+      cta: "View Collection",
+      link: "/category/accessories",
+      bgColor: "from-blue-400 to-indigo-600",
+      image: "/placeholder.svg",
+    },
+    {
+      title: "New Arrivals",
+      description: "Be the first to shop our latest collection",
+      cta: "Explore",
+      link: "/category/new",
+      bgColor: "from-emerald-400 to-cyan-500",
+      image: "/placeholder.svg",
+    },
+  ];
+
+  // Auto-rotate banner
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBanner((current) => (current + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
   
   return (
     <div className="container py-8 space-y-12">
@@ -43,6 +82,47 @@ export default function Home() {
             </Button>
           </div>
         </div>
+      </section>
+      
+      {/* Advertising Banner Slider */}
+      <section className="py-6">
+        <Carousel className="w-full">
+          <CarouselContent>
+            {banners.map((banner, index) => (
+              <CarouselItem key={index}>
+                <div className={`relative overflow-hidden rounded-lg bg-gradient-to-r ${banner.bgColor} h-[250px] md:h-[300px] w-full`}>
+                  <div className="absolute inset-0 flex p-8 md:p-12">
+                    <div className="flex flex-col justify-center max-w-lg">
+                      <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                        {banner.title}
+                      </h2>
+                      <p className="text-white/90 mb-6 max-w-md">
+                        {banner.description}
+                      </p>
+                      <div>
+                        <Button asChild size="lg" variant="secondary" className="group">
+                          <Link to={banner.link}>
+                            {banner.cta}
+                            <ArrowUpRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="hidden md:flex items-center justify-end flex-1">
+                      <img 
+                        src={banner.image} 
+                        alt={banner.title} 
+                        className="max-h-full object-contain" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-4" />
+          <CarouselNext className="right-4" />
+        </Carousel>
       </section>
       
       {/* Categories section */}
@@ -76,26 +156,69 @@ export default function Home() {
         </div>
       </section>
       
-      {/* New Arrivals */}
+      {/* New Arrivals - Enhanced */}
       {newArrivals.length > 0 && (
-        <section>
+        <section className="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">New Arrivals</h2>
-            <Button asChild variant="ghost">
-              <Link to="/category/new">View All</Link>
+            <div>
+              <h2 className="text-2xl font-bold">New Arrivals</h2>
+              <p className="text-muted-foreground">Check out our latest products</p>
+            </div>
+            <Button asChild variant="outline" className="group">
+              <Link to="/category/new">
+                View All
+                <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
             </Button>
           </div>
-          <Carousel>
-            <CarouselContent>
-              {newArrivals.map((product) => (
-                <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
-                  <ProductGrid products={[product]} />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-2" />
-            <CarouselNext className="right-2" />
-          </Carousel>
+          
+          <div className="relative">
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full"
+            >
+              <CarouselContent>
+                {newArrivals.map((product) => (
+                  <CarouselItem key={product.id} className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 pl-4">
+                    <div className="p-1">
+                      <div className="overflow-hidden rounded-lg border bg-card">
+                        <Link to={`/product/${product.id}`} className="block">
+                          <div className="aspect-square overflow-hidden">
+                            <img 
+                              src={product.images[0]} 
+                              alt={product.name}
+                              className="h-full w-full object-cover transition-transform hover:scale-105"
+                            />
+                          </div>
+                        </Link>
+                        <div className="p-4">
+                          <h3 className="font-medium truncate">{product.name}</h3>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="font-semibold">${product.price.toFixed(2)}</span>
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                // Add to cart logic would go here
+                              }}
+                            >
+                              Add to Cart
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-2" />
+              <CarouselNext className="right-2" />
+            </Carousel>
+          </div>
         </section>
       )}
       
