@@ -13,13 +13,26 @@ import {
 } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Separator } from "@/components/ui/separator";
-import { Star, ShoppingCart } from "lucide-react";
+import { Star, ShoppingCart, Plus, Minus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductGrid from "@/components/ProductGrid";
+import { useState } from "react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { addItem } = useCart();
+  const [quantity, setQuantity] = useState(1);
+  const [currentReviewPage, setCurrentReviewPage] = useState(1);
+  const reviewsPerPage = 3;
   
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -37,6 +50,92 @@ export default function ProductDetail() {
   const filteredRelatedProducts = relatedProducts
     .filter(p => p.id !== product?.id)
     .slice(0, 4);
+  
+  // Mock review data
+  const reviews = [
+    {
+      id: 1,
+      name: "Sarah Thompson",
+      avatar: "/placeholder.svg",
+      rating: 5,
+      comment: "The quality exceeded my expectations. Perfect fit and great material!",
+      date: "2 days ago"
+    },
+    {
+      id: 2,
+      name: "Michael Rodriguez",
+      avatar: "/placeholder.svg",
+      rating: 4,
+      comment: "Very stylish and comfortable. Would definitely recommend.",
+      date: "1 week ago"
+    },
+    {
+      id: 3,
+      name: "Emma Walker",
+      avatar: "/placeholder.svg",
+      rating: 5,
+      comment: "Amazing product and fast shipping. Very satisfied!",
+      date: "2 weeks ago"
+    },
+    {
+      id: 4,
+      name: "David Chen",
+      avatar: "/placeholder.svg",
+      rating: 4,
+      comment: "Great value for the price. The sizing was perfect.",
+      date: "3 weeks ago"
+    },
+    {
+      id: 5,
+      name: "Jennifer Wilson",
+      avatar: "/placeholder.svg",
+      rating: 5,
+      comment: "This has become my favorite item. The attention to detail is impressive.",
+      date: "1 month ago"
+    },
+    {
+      id: 6,
+      name: "Robert Johnson",
+      avatar: "/placeholder.svg",
+      rating: 4,
+      comment: "Good quality and looks exactly like the photos. Happy with my purchase.",
+      date: "1 month ago"
+    },
+    {
+      id: 7,
+      name: "Lisa Brown",
+      avatar: "/placeholder.svg",
+      rating: 5,
+      comment: "I've received so many compliments wearing this. Absolutely love it!",
+      date: "2 months ago"
+    }
+  ];
+  
+  const totalReviewPages = Math.ceil(reviews.length / reviewsPerPage);
+  const currentReviews = reviews.slice(
+    (currentReviewPage - 1) * reviewsPerPage,
+    currentReviewPage * reviewsPerPage
+  );
+  
+  const incrementQuantity = () => {
+    if (product && quantity < product.stock) {
+      setQuantity(prev => prev + 1);
+    }
+  };
+  
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(prev => prev - 1);
+    }
+  };
+  
+  const handleAddToCart = () => {
+    if (product) {
+      for (let i = 0; i < quantity; i++) {
+        addItem(product);
+      }
+    }
+  };
   
   if (isLoading) {
     return (
@@ -149,10 +248,36 @@ export default function ProductDetail() {
             </p>
           </div>
           
+          {/* Quantity Selector */}
+          <div className="flex items-center gap-4">
+            <span className="font-medium">Quantity:</span>
+            <div className="flex items-center border rounded-md">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={decrementQuantity}
+                disabled={quantity <= 1}
+                className="h-9 w-9"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-10 text-center">{quantity}</span>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={incrementQuantity}
+                disabled={product.stock <= quantity}
+                className="h-9 w-9"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
           <div className="pt-4">
             <Button 
               size="lg" 
-              onClick={() => addItem(product)}
+              onClick={handleAddToCart}
               disabled={product.stock <= 0}
               className="w-full md:w-auto"
             >
@@ -162,6 +287,75 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+      
+      {/* Product Reviews */}
+      <section className="mt-12 mb-12">
+        <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
+        
+        <div className="space-y-6">
+          {currentReviews.map((review) => (
+            <div key={review.id} className="border-b pb-6">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden">
+                  <img
+                    src={review.avatar}
+                    alt={`${review.name}'s avatar`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-medium">{review.name}</h3>
+                  <p className="text-sm text-muted-foreground">{review.date}</p>
+                </div>
+              </div>
+              
+              <div className="flex mb-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={16}
+                    className={i < review.rating ? "fill-primary text-primary" : "text-muted"}
+                  />
+                ))}
+              </div>
+              
+              <p className="text-muted-foreground">{review.comment}</p>
+            </div>
+          ))}
+        </div>
+        
+        {/* Review Pagination */}
+        {reviews.length > reviewsPerPage && (
+          <Pagination className="mt-6">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setCurrentReviewPage(p => Math.max(1, p - 1))}
+                  className={currentReviewPage === 1 ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: totalReviewPages }).map((_, index) => (
+                <PaginationItem key={index}>
+                  <PaginationLink
+                    isActive={currentReviewPage === index + 1}
+                    onClick={() => setCurrentReviewPage(index + 1)}
+                  >
+                    {index + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setCurrentReviewPage(p => Math.min(totalReviewPages, p + 1))}
+                  className={currentReviewPage === totalReviewPages ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </section>
       
       {/* Related Products */}
       {filteredRelatedProducts.length > 0 && (

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Search, ShoppingCart, User, Menu, X 
@@ -20,11 +20,14 @@ import {
 } from "@/components/ui/sheet";
 import api from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { itemCount } = useCart();
+  const { items, itemCount, subtotal, removeItem } = useCart();
+  const navigate = useNavigate();
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -33,9 +36,10 @@ export default function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search navigation
     if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
+      setMobileMenuOpen(false);
     }
   };
 
@@ -102,26 +106,75 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent className="w-full sm:max-w-md">
               <SheetHeader>
-                <SheetTitle>Your Cart</SheetTitle>
+                <SheetTitle>Your Cart ({itemCount} items)</SheetTitle>
               </SheetHeader>
               <div className="py-6">
-                {/* Cart items will be rendered here */}
-                <div className="flex flex-col gap-4">
-                  {itemCount === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      Your cart is empty
+                {itemCount === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">
+                    Your cart is empty
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-4 max-h-[60vh] overflow-auto">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex gap-4">
+                        <div className="w-16 flex-shrink-0">
+                          <AspectRatio ratio={1} className="bg-muted">
+                            <img
+                              src={item.images[0]}
+                              alt={item.name}
+                              className="object-cover w-full h-full rounded"
+                            />
+                          </AspectRatio>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <Link to={`/product/${item.id}`} className="font-medium hover:underline">
+                              {item.name}
+                            </Link>
+                            <button
+                              onClick={() => removeItem(item.id)}
+                              className="text-muted-foreground hover:text-destructive"
+                              aria-label="Remove item"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {item.quantity} × ${(item.sale || item.price).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {itemCount > 0 && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="flex justify-between font-medium">
+                      <span>Subtotal</span>
+                      <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2 mb-4">
+                      Shipping and taxes calculated at checkout
                     </p>
-                  ) : (
-                    <p className="text-center py-8">
-                      {itemCount} items in your cart
-                    </p>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
-              <SheetFooter>
+              <SheetFooter className="flex-col gap-2 sm:flex-col">
                 <SheetClose asChild>
                   <Button 
                     className="w-full"
+                    asChild
+                    disabled={itemCount === 0}
+                  >
+                    <Link to="/cart">View Cart</Link>
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button 
+                    className="w-full"
+                    variant="outline"
                     asChild
                     disabled={itemCount === 0}
                   >
@@ -137,50 +190,18 @@ export default function Header() {
         <div className="flex items-center md:hidden gap-2">
           <ThemeToggle />
           
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative" aria-label="Cart">
-                <ShoppingCart className="h-5 w-5" />
-                {itemCount > 0 && (
-                  <Badge 
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full p-0 text-xs"
-                  >
-                    {itemCount}
-                  </Badge>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Your Cart</SheetTitle>
-              </SheetHeader>
-              <div className="py-6">
-                {/* Cart items will be rendered here */}
-                <div className="flex flex-col gap-4">
-                  {itemCount === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      Your cart is empty
-                    </p>
-                  ) : (
-                    <p className="text-center py-8">
-                      {itemCount} items in your cart
-                    </p>
-                  )}
-                </div>
-              </div>
-              <SheetFooter>
-                <SheetClose asChild>
-                  <Button 
-                    className="w-full"
-                    asChild
-                    disabled={itemCount === 0}
-                  >
-                    <Link to="/checkout">Checkout</Link>
-                  </Button>
-                </SheetClose>
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
+          <Link to="/cart" className="relative">
+            <Button variant="ghost" size="icon" aria-label="Cart">
+              <ShoppingCart className="h-5 w-5" />
+              {itemCount > 0 && (
+                <Badge 
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full p-0 text-xs"
+                >
+                  {itemCount}
+                </Badge>
+              )}
+            </Button>
+          </Link>
           
           <Button 
             variant="ghost" 
@@ -250,6 +271,14 @@ export default function Header() {
                   {category.name}
                 </Link>
               ))}
+              <Link 
+                to="/cart" 
+                className="py-2 flex items-center gap-2 nav-link"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <span>Cart ({itemCount})</span>
+              </Link>
               <Link 
                 to="/account" 
                 className="py-2 flex items-center gap-2 nav-link"

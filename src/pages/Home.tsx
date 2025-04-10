@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import ProductGrid from "@/components/ProductGrid";
@@ -11,8 +10,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Star } from "lucide-react";
 import { useState, useEffect } from "react";
+import ReviewCard from "@/components/ReviewCard";
 
 export default function Home() {
   const { data: products = [], isLoading } = useQuery({
@@ -24,7 +24,6 @@ export default function Home() {
   const newArrivals = products.filter(product => product.new);
   const onSale = products.filter(product => product.sale);
   
-  // Advertising Banner content
   const [currentBanner, setCurrentBanner] = useState(0);
   const banners = [
     {
@@ -53,7 +52,6 @@ export default function Home() {
     },
   ];
 
-  // Auto-rotate banner
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBanner((current) => (current + 1) % banners.length);
@@ -61,9 +59,51 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [banners.length]);
   
+  const reviews = [
+    {
+      id: 1,
+      name: "Sarah Thompson",
+      avatar: "/placeholder.svg",
+      rating: 5,
+      comment: "The quality of these products exceeded my expectations. I've already ordered more!",
+      date: "2 days ago"
+    },
+    {
+      id: 2,
+      name: "Michael Rodriguez",
+      avatar: "/placeholder.svg",
+      rating: 4,
+      comment: "Very stylish and comfortable. Would definitely recommend to friends and family.",
+      date: "1 week ago"
+    },
+    {
+      id: 3,
+      name: "Emma Walker",
+      avatar: "/placeholder.svg",
+      rating: 5,
+      comment: "Amazing service and the products arrived earlier than expected. Very satisfied!",
+      date: "2 weeks ago"
+    },
+    {
+      id: 4,
+      name: "David Chen",
+      avatar: "/placeholder.svg",
+      rating: 4,
+      comment: "Great value for the price. The sizing was perfect and the quality is outstanding.",
+      date: "3 weeks ago"
+    },
+    {
+      id: 5,
+      name: "Jennifer Wilson",
+      avatar: "/placeholder.svg",
+      rating: 5,
+      comment: "These are now my go-to for all my fashion needs. The attention to detail is impressive.",
+      date: "1 month ago"
+    }
+  ];
+  
   return (
     <div className="container py-8 space-y-12">
-      {/* Hero section */}
       <section className="relative rounded-lg overflow-hidden h-[70vh] min-h-[400px] flex items-center">
         <div className="absolute inset-0 bg-black/70 z-0"></div>
         <div className="relative z-10 container px-4 py-16 text-white text-center">
@@ -84,7 +124,6 @@ export default function Home() {
         </div>
       </section>
       
-      {/* Advertising Banner Slider */}
       <section className="py-6">
         <Carousel className="w-full">
           <CarouselContent>
@@ -125,7 +164,6 @@ export default function Home() {
         </Carousel>
       </section>
       
-      {/* Categories section */}
       <section className="py-12">
         <h2 className="text-3xl font-bold text-center mb-8">Shop By Category</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -156,7 +194,33 @@ export default function Home() {
         </div>
       </section>
       
-      {/* New Arrivals - Enhanced */}
+      <section className="py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">What Our Customers Say</h2>
+            <p className="text-muted-foreground">Trusted by fashion enthusiasts worldwide</p>
+          </div>
+        </div>
+        
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent>
+            {reviews.map((review) => (
+              <CarouselItem key={review.id} className="basis-full sm:basis-1/2 md:basis-1/3 pl-4">
+                <ReviewCard {...review} />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-2" />
+          <CarouselNext className="right-2" />
+        </Carousel>
+      </section>
+      
       {newArrivals.length > 0 && (
         <section className="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-8">
           <div className="flex justify-between items-center mb-6">
@@ -222,7 +286,6 @@ export default function Home() {
         </section>
       )}
       
-      {/* On Sale */}
       {onSale.length > 0 && (
         <section>
           <div className="flex justify-between items-center mb-6">
@@ -235,7 +298,6 @@ export default function Home() {
         </section>
       )}
       
-      {/* Featured Products */}
       <section>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">Featured Products</h2>
