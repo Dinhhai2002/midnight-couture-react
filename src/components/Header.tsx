@@ -1,13 +1,13 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ShoppingCart, User, Menu } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, Heart } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useCart } from "./CartContext";
 import { Badge } from "@/components/ui/badge";
 
-// Import new modular components
+// Import modular components
 import SearchBar from "./header/SearchBar";
 import CategoryLinks from "./header/CategoryLinks";
 import MobileSearch from "./header/MobileSearch";
@@ -28,8 +28,22 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="hidden md:block border-b py-2">
+        <div className="container flex items-center justify-between">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+            <Link to="/about" className="hover:text-foreground transition-colors">About Us</Link>
+            <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Free shipping on orders over $50</span>
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
+      
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex gap-6 md:gap-10">
+        <div className="flex gap-6 md:gap-10 items-center">
           <Link to="/" className="flex items-center space-x-2">
             <span className="font-bold text-xl tracking-tight">LUXE</span>
           </Link>
@@ -37,11 +51,15 @@ export default function Header() {
         
         <div className="hidden md:flex flex-col items-center gap-2 flex-1 max-w-xl mx-auto">
           <SearchBar />
-          <CategoryLinks />
+          <CategoryLinks className="overflow-x-auto" />
         </div>
         
         <div className="hidden md:flex items-center gap-4">
-          <ThemeToggle />
+          <Link to="/wishlist" aria-label="Wishlist">
+            <Button variant="ghost" size="icon">
+              <Heart className="h-5 w-5" />
+            </Button>
+          </Link>
           
           <Link to="/account">
             <Button variant="ghost" size="icon" aria-label="Account">

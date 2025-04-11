@@ -1,71 +1,80 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { CartProvider } from "@/components/CartContext";
+import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { CartProvider } from "@/components/CartContext";
+import SocialButtons from "@/components/SocialButtons";
 
 // Pages
 import Home from "@/pages/Home";
-import ProductDetail from "@/pages/ProductDetail";
 import ProductListing from "@/pages/ProductListing";
+import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
-import NotFound from "./pages/NotFound";
 import Account from "@/pages/Account";
+import NotFound from "@/pages/NotFound";
+import Blog from "@/pages/Blog";
+import BlogDetail from "@/pages/BlogDetail";
+
+// Account Pages
 import AccountInfo from "@/pages/account/AccountInfo";
 import AddressBook from "@/pages/account/AddressBook";
-import AddressForm from "@/pages/account/AddressForm";
 import OrderHistory from "@/pages/account/OrderHistory";
 import OrderDetail from "@/pages/account/OrderDetail";
+import AddressForm from "@/pages/account/AddressForm";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light">
-      <BrowserRouter>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <CartProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
+          <BrowserRouter>
             <div className="flex flex-col min-h-screen">
               <Header />
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
                   <Route path="/products" element={<ProductListing />} />
-                  <Route path="/category/:category" element={<ProductListing />} />
+                  <Route path="/category/:slug" element={<ProductListing />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
                   <Route path="/search" element={<ProductListing />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />
                   
+                  {/* Blog Routes */}
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogDetail />} />
+                  
                   {/* Account Routes */}
                   <Route path="/account" element={<Account />}>
                     <Route index element={<AccountInfo />} />
+                    <Route path="addresses" element={<AddressBook />} />
+                    <Route path="addresses/add" element={<AddressForm />} />
+                    <Route path="addresses/edit/:id" element={<AddressForm />} />
                     <Route path="orders" element={<OrderHistory />} />
                     <Route path="orders/:id" element={<OrderDetail />} />
-                    <Route path="addresses" element={<AddressBook />} />
-                    <Route path="addresses/new" element={<AddressForm />} />
-                    <Route path="addresses/edit/:id" element={<AddressForm />} />
                   </Route>
                   
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
               <Footer />
             </div>
-          </TooltipProvider>
+            
+            {/* Social floating buttons */}
+            <SocialButtons />
+            
+            <Toaster />
+          </BrowserRouter>
         </CartProvider>
-      </BrowserRouter>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

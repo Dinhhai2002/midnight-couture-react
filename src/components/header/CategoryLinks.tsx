@@ -9,10 +9,20 @@ interface CategoryLinksProps {
   className?: string;
 }
 
+// Mock category images
+const categoryImages: Record<string, string> = {
+  "fashion": "/placeholder.svg",
+  "accessories": "/placeholder.svg",
+  "shoes": "/placeholder.svg",
+  "hats": "/placeholder.svg",
+  "jewelry": "/placeholder.svg",
+  "bags": "/placeholder.svg"
+};
+
 export default function CategoryLinks({ onCategoryClick, className = "" }: CategoryLinksProps) {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["categories"],
-    queryFn: api.getCategories
+    queryFn: () => api.getCategories()
   });
 
   if (isLoadingCategories) {
@@ -31,10 +41,19 @@ export default function CategoryLinks({ onCategoryClick, className = "" }: Categ
         <Link 
           key={category.id}
           to={`/category/${category.slug}`}
-          className="hover:text-primary transition-colors whitespace-nowrap"
+          className="flex flex-col items-center hover:text-primary transition-colors whitespace-nowrap"
           onClick={onCategoryClick}
         >
-          {category.name}
+          {categoryImages[category.slug] && (
+            <div className="w-8 h-8 rounded-full overflow-hidden mb-1 border">
+              <img 
+                src={categoryImages[category.slug] || "/placeholder.svg"} 
+                alt={category.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <span>{category.name}</span>
         </Link>
       ))}
     </div>

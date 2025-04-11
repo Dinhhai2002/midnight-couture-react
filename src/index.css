@@ -69,12 +69,22 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border selection:bg-primary/10 selection:text-primary;
   }
   
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Improve focus states */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  
+  /* Dark mode image adjustments */
+  .dark img {
+    @apply brightness-90;
   }
 }
 
@@ -89,5 +99,64 @@
   
   .nav-link {
     @apply text-foreground/80 hover:text-foreground transition-colors;
+  }
+  
+  /* Image zoom effect */
+  .zoom-container {
+    @apply relative overflow-hidden;
+  }
+  
+  .zoom-image {
+    @apply transition-transform duration-300 ease-out;
+  }
+  
+  .zoom-container:hover .zoom-image {
+    @apply scale-110 md:scale-125;
+  }
+  
+  /* Glass morphism for cards */
+  .glass-card {
+    @apply bg-background/70 backdrop-blur-md border rounded-lg shadow-lg;
+  }
+  
+  /* Custom scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Animation classes */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-in {
+    animation: slideIn 0.5s ease-out forwards;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 }

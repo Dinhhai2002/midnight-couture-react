@@ -23,7 +23,7 @@ export default function SearchBar({ isMobile = false, onProductClick }: SearchBa
   // Fetch all products for search suggestions
   const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["all-products"],
-    queryFn: api.getProducts
+    queryFn: () => api.getProducts()
   });
 
   // Filter products based on search query

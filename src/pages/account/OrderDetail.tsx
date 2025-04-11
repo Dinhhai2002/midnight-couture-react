@@ -1,6 +1,7 @@
 
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { 
   Card, 
   CardContent, 
@@ -14,6 +15,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { AlertCircle, Check, Truck } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import BreadcrumbBar from "@/components/BreadcrumbBar";
+import ProductReviewForm from "@/components/ProductReviewForm";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock API function to fetch order details
 const fetchOrderDetails = async (id: string) => {
@@ -62,6 +67,8 @@ const fetchOrderDetails = async (id: string) => {
 
 export default function OrderDetail() {
   const { id = "" } = useParams();
+  const [reviewedProducts, setReviewedProducts] = useState<number[]>([]);
+  const { toast } = useToast();
   
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", id],
@@ -85,6 +92,18 @@ export default function OrderDetail() {
       case "delivered": return <Check className="h-4 w-4" />;
       default: return null;
     }
+  };
+
+  const handleReviewSubmitted = (productId: number) => {
+    setReviewedProducts(prev => [...prev, productId]);
+    toast({
+      title: "Review submitted",
+      description: "Thank you for your feedback!",
+    });
+  };
+  
+  const canReview = (productId: number) => {
+    return order?.status === "delivered" && !reviewedProducts.includes(productId);
   };
   
   if (isLoading) {
@@ -114,6 +133,14 @@ export default function OrderDetail() {
   
   return (
     <div className="space-y-6">
+      <BreadcrumbBar 
+        items={[
+          { label: "Account", href: "/account" },
+          { label: "Orders", href: "/account/orders" },
+          { label: `Order #${order.orderNumber}` }
+        ]} 
+      />
+      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Order #{order.orderNumber}</h2>
@@ -202,6 +229,33 @@ export default function OrderDetail() {
                       <span className="line-through ml-2">${item.price.toFixed(2)}</span>
                     )}
                   </div>
+                  
+                  {canReview(item.id) && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="mt-2">
+                          Write a Review
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Review {item.name}</DialogTitle>
+                        </DialogHeader>
+                        <ProductReviewForm 
+                          productId={item.id} 
+                          productName={item.name}
+                          orderId={order.id}
+                          onReviewSubmitted={() => handleReviewSubmitted(item.id)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  
+                  {reviewedProducts.includes(item.id) && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 mt-2">
+                      <Check className="h-3 w-3 mr-1" /> Review Submitted
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}

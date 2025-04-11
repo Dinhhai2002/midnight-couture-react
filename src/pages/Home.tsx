@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import ProductGrid from "@/components/ProductGrid";
@@ -11,8 +12,9 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { ArrowRight, ArrowUpRight, Star } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ReviewCard from "@/components/ReviewCard";
+import BreadcrumbBar from "@/components/BreadcrumbBar";
 
 export default function Home() {
   const { data: products = [], isLoading } = useQuery({
@@ -25,6 +27,9 @@ export default function Home() {
   const onSale = products.filter(product => product.sale);
   
   const [currentBanner, setCurrentBanner] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const autoSlideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const banners = [
     {
       title: "Summer Collection",
@@ -52,12 +57,34 @@ export default function Home() {
     },
   ];
 
+  // Function to advance the banner
+  const advanceBanner = useCallback(() => {
+    setCurrentBanner((current) => (current + 1) % banners.length);
+    
+    // Force the carousel to move
+    if (carouselRef.current) {
+      const nextIndex = (currentBanner + 1) % banners.length;
+      const carouselItems = carouselRef.current.querySelectorAll('[data-embla-slide]');
+      if (carouselItems && carouselItems[nextIndex]) {
+        (carouselItems[nextIndex] as HTMLElement).click();
+      }
+    }
+  }, [banners.length, currentBanner]);
+
+  // Set up auto-rotation for banners
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBanner((current) => (current + 1) % banners.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [banners.length]);
+    if (autoSlideTimerRef.current) {
+      clearInterval(autoSlideTimerRef.current);
+    }
+    
+    autoSlideTimerRef.current = setInterval(advanceBanner, 5000);
+    
+    return () => {
+      if (autoSlideTimerRef.current) {
+        clearInterval(autoSlideTimerRef.current);
+      }
+    };
+  }, [advanceBanner]);
   
   const reviews = [
     {
@@ -104,6 +131,8 @@ export default function Home() {
   
   return (
     <div className="container py-8 space-y-12">
+      <BreadcrumbBar items={[{ label: "Home" }]} />
+      
       <section className="relative rounded-lg overflow-hidden h-[70vh] min-h-[400px] flex items-center">
         <div className="absolute inset-0 bg-black/70 z-0"></div>
         <div className="relative z-10 container px-4 py-16 text-white text-center">
@@ -125,7 +154,19 @@ export default function Home() {
       </section>
       
       <section className="py-6">
-        <Carousel className="w-full">
+        <Carousel 
+          className="w-full" 
+          ref={carouselRef}
+          onSelect={(selectedIndex) => {
+            setCurrentBanner(selectedIndex);
+            
+            // Reset the auto-slide timer when manually selecting a slide
+            if (autoSlideTimerRef.current) {
+              clearInterval(autoSlideTimerRef.current);
+              autoSlideTimerRef.current = setInterval(advanceBanner, 5000);
+            }
+          }}
+        >
           <CarouselContent>
             {banners.map((banner, index) => (
               <CarouselItem key={index}>
@@ -161,6 +202,31 @@ export default function Home() {
           </CarouselContent>
           <CarouselPrevious className="left-4" />
           <CarouselNext className="right-4" />
+          
+          {/* Carousel indicators */}
+          <div className="flex justify-center gap-2 mt-4">
+            {banners.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setCurrentBanner(index);
+                  // Find and click the corresponding carousel item
+                  if (carouselRef.current) {
+                    const carouselItems = carouselRef.current.querySelectorAll('[data-embla-slide]');
+                    if (carouselItems && carouselItems[index]) {
+                      (carouselItems[index] as HTMLElement).click();
+                    }
+                  }
+                }}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  currentBanner === index 
+                    ? "bg-primary w-4" 
+                    : "bg-muted"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
         </Carousel>
       </section>
       
