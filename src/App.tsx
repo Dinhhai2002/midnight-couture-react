@@ -16,6 +16,12 @@ import ProductListing from "@/pages/ProductListing";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import NotFound from "./pages/NotFound";
+import Account from "@/pages/Account";
+import AccountInfo from "@/pages/account/AccountInfo";
+import AddressBook from "@/pages/account/AddressBook";
+import AddressForm from "@/pages/account/AddressForm";
+import OrderHistory from "@/pages/account/OrderHistory";
+import OrderDetail from "@/pages/account/OrderDetail";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +44,17 @@ const App = () => (
                   <Route path="/search" element={<ProductListing />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />
+                  
+                  {/* Account Routes */}
+                  <Route path="/account" element={<Account />}>
+                    <Route index element={<AccountInfo />} />
+                    <Route path="orders" element={<OrderHistory />} />
+                    <Route path="orders/:id" element={<OrderDetail />} />
+                    <Route path="addresses" element={<AddressBook />} />
+                    <Route path="addresses/new" element={<AddressForm />} />
+                    <Route path="addresses/edit/:id" element={<AddressForm />} />
+                  </Route>
+                  
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

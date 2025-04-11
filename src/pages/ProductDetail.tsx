@@ -1,6 +1,7 @@
 
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useRef } from "react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/components/CartContext";
@@ -16,7 +17,6 @@ import { Separator } from "@/components/ui/separator";
 import { Star, ShoppingCart, Plus, Minus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductGrid from "@/components/ProductGrid";
-import { useState } from "react";
 import {
   Pagination,
   PaginationContent,
@@ -26,12 +26,19 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
+import ReviewCard from "@/components/ReviewCard";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [currentReviewPage, setCurrentReviewPage] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  
   const reviewsPerPage = 3;
   
   const { data: product, isLoading, error } = useQuery({
@@ -40,7 +47,7 @@ export default function ProductDetail() {
     enabled: !!id,
   });
   
-  const { data: relatedProducts = [] } = useQuery({
+  const { data: relatedProducts = [], isLoading: isLoadingRelated } = useQuery({
     queryKey: ["related-products", product?.category],
     queryFn: () => api.getProducts(product?.category),
     enabled: !!product?.category,
@@ -136,15 +143,65 @@ export default function ProductDetail() {
       }
     }
   };
+
+  // Image zoom functionality
+  const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    
+    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    
+    setZoomPosition({ x, y });
+  };
+  
+  const handleImageMouseEnter = () => {
+    setIsZoomed(true);
+  };
+  
+  const handleImageMouseLeave = () => {
+    setIsZoomed(false);
+  };
+  
+  const handleThumbnailClick = (index: number) => {
+    setActiveImageIndex(index);
+  };
   
   if (isLoading) {
     return (
-      <div className="container py-12 text-center">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 w-1/3 bg-muted rounded mx-auto"></div>
-          <div className="h-80 bg-muted rounded"></div>
-          <div className="h-4 w-2/3 bg-muted rounded mx-auto"></div>
-          <div className="h-4 w-1/2 bg-muted rounded mx-auto"></div>
+      <div className="container py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <div className="space-y-4">
+            <Skeleton className="h-[400px] w-full rounded-md" />
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-20 w-20 rounded-md" />
+              ))}
+            </div>
+          </div>
+          
+          <div className="space-y-6">
+            <div>
+              <Skeleton className="h-8 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-px w-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-1/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-1/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-40" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -165,27 +222,50 @@ export default function ProductDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
         {/* Product Images */}
         <div className="space-y-4">
-          <Carousel className="w-full">
-            <CarouselContent>
-              {product.images.map((image, index) => (
-                <CarouselItem key={index}>
-                  <AspectRatio ratio={1} className="bg-muted">
-                    <img
-                      src={image}
-                      alt={`${product.name} - Image ${index + 1}`}
-                      className="object-cover w-full h-full rounded-md"
-                    />
-                  </AspectRatio>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-2" />
-            <CarouselNext className="right-2" />
-          </Carousel>
+          {/* Main Image with Zoom */}
+          <div 
+            className="relative overflow-hidden bg-muted rounded-md cursor-zoom-in"
+            style={{ height: '400px' }}
+            ref={imageContainerRef}
+            onMouseMove={handleImageMouseMove}
+            onMouseEnter={handleImageMouseEnter}
+            onMouseLeave={handleImageMouseLeave}
+          >
+            <img
+              src={product.images[activeImageIndex]}
+              alt={`${product.name} - Main Image`}
+              className="object-contain w-full h-full transition-transform"
+            />
+            
+            {isZoomed && (
+              <div className="absolute inset-0 pointer-events-none">
+                <div
+                  style={{
+                    backgroundImage: `url(${product.images[activeImageIndex]})`,
+                    backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                    backgroundSize: '200%',
+                    backgroundRepeat: 'no-repeat',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
+              </div>
+            )}
+          </div>
           
+          {/* Thumbnails */}
           <div className="flex gap-2 overflow-auto pb-2">
             {product.images.map((image, index) => (
-              <div key={index} className="w-20 flex-shrink-0">
+              <div 
+                key={index} 
+                className={`w-20 flex-shrink-0 cursor-pointer ${
+                  activeImageIndex === index ? 'ring-2 ring-primary rounded-md' : ''
+                }`}
+                onClick={() => handleThumbnailClick(index)}
+              >
                 <AspectRatio ratio={1} className="bg-muted">
                   <img
                     src={image}
@@ -292,41 +372,45 @@ export default function ProductDetail() {
       <section className="mt-12 mb-12">
         <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
         
-        <div className="space-y-6">
-          {currentReviews.map((review) => (
-            <div key={review.id} className="border-b pb-6">
-              <div className="flex items-center gap-4 mb-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <img
-                    src={review.avatar}
-                    alt={`${review.name}'s avatar`}
-                    className="w-full h-full object-cover"
-                  />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium">{review.name}</h3>
-                  <p className="text-sm text-muted-foreground">{review.date}</p>
+                <div className="flex">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-4 mr-1" />
+                  ))}
                 </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
-              
-              <div className="flex mb-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={16}
-                    className={i < review.rating ? "fill-primary text-primary" : "text-muted"}
-                  />
-                ))}
-              </div>
-              
-              <p className="text-muted-foreground">{review.comment}</p>
-            </div>
-          ))}
+            ))
+          ) : (
+            currentReviews.map((review) => (
+              <ReviewCard 
+                key={review.id}
+                id={review.id}
+                name={review.name}
+                avatar={review.avatar}
+                rating={review.rating}
+                comment={review.comment}
+                date={review.date}
+              />
+            ))
+          )}
         </div>
         
         {/* Review Pagination */}
         {reviews.length > reviewsPerPage && (
-          <Pagination className="mt-6">
+          <Pagination className="mt-8">
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious 
@@ -361,7 +445,19 @@ export default function ProductDetail() {
       {filteredRelatedProducts.length > 0 && (
         <div className="mt-16">
           <h2 className="text-2xl font-bold mb-6">You might also like</h2>
-          <ProductGrid products={filteredRelatedProducts} />
+          {isLoadingRelated ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-4">
+                  <Skeleton className="h-48 w-full rounded-md" />
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-1/3" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ProductGrid products={filteredRelatedProducts} />
+          )}
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -22,26 +22,64 @@ import api from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Product } from "@/lib/types";
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { items, itemCount, subtotal, removeItem } = useCart();
   const navigate = useNavigate();
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+  
+  // Fetch all products for search suggestions
+  const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery({
+    queryKey: ["all-products"],
+    queryFn: api.getAllProducts
+  });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["categories"],
     queryFn: api.getCategories
   });
+
+  // Filter products based on search query
+  const filteredProducts = allProducts
+    .filter((product: Product) => 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .slice(0, 5); // Limit to 5 results for dropdown
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
       setSearchQuery("");
+      setShowSuggestions(false);
       setMobileMenuOpen(false);
     }
   };
+  
+  const handleProductClick = (productId: number) => {
+    navigate(`/product/${productId}`);
+    setSearchQuery("");
+    setShowSuggestions(false);
+  };
+  
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchResultsRef.current && !searchResultsRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -50,39 +88,116 @@ export default function Header() {
           <Link to="/" className="flex items-center space-x-2">
             <span className="font-bold text-xl tracking-tight">LUXE</span>
           </Link>
-          
-          <nav className="hidden md:flex gap-6">
-            <Link to="/" className="nav-link">Home</Link>
-            {categories.map((category) => (
-              <Link 
-                key={category.id}
-                to={`/category/${category.slug}`}
-                className="nav-link"
+        </div>
+        
+        <div className="hidden md:flex flex-col items-center gap-2 flex-1 max-w-xl mx-auto">
+          <div className="relative w-full" ref={searchResultsRef}>
+            <form onSubmit={handleSearch} className="relative w-full">
+              <Input
+                type="search"
+                placeholder="Search products..."
+                className="pr-8"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(e.target.value.length > 0);
+                }}
+                onFocus={() => setShowSuggestions(searchQuery.length > 0)}
+              />
+              <button 
+                type="submit" 
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                aria-label="Search"
               >
-                {category.name}
-              </Link>
-            ))}
-          </nav>
+                <Search className="h-4 w-4" />
+              </button>
+            </form>
+            
+            {/* Search Results Dropdown */}
+            {showSuggestions && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 max-h-80 overflow-auto">
+                {isLoadingProducts ? (
+                  <div className="p-4 space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded" />
+                        <div className="space-y-1 flex-1">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/4" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredProducts.length > 0 ? (
+                  <div>
+                    {filteredProducts.map((product: Product) => (
+                      <div 
+                        key={product.id}
+                        className="flex items-center gap-3 p-2 hover:bg-muted cursor-pointer"
+                        onClick={() => handleProductClick(product.id)}
+                      >
+                        <div className="h-10 w-10 bg-muted rounded overflow-hidden">
+                          <img 
+                            src={product.images[0]} 
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <div className="font-medium">{product.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            ${(product.sale || product.price).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="p-2 border-t">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start text-primary" 
+                        size="sm"
+                        onClick={() => {
+                          handleSearch({ preventDefault: () => {} } as React.FormEvent);
+                        }}
+                      >
+                        <Search className="mr-2 h-4 w-4" />
+                        Search for "{searchQuery}"
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-muted-foreground">
+                    No results found for "{searchQuery}"
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Categories below search */}
+          <div className="flex items-center gap-4 text-sm">
+            {isLoadingCategories ? (
+              <div className="flex gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-4 w-16" />
+                ))}
+              </div>
+            ) : (
+              categories.map((category) => (
+                <Link 
+                  key={category.id}
+                  to={`/category/${category.slug}`}
+                  className="hover:text-primary transition-colors"
+                >
+                  {category.name}
+                </Link>
+              ))
+            )}
+          </div>
         </div>
         
         <div className="hidden md:flex items-center gap-4">
-          <form onSubmit={handleSearch} className="relative w-60">
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="pr-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button 
-              type="submit" 
-              className="absolute right-2 top-1/2 -translate-y-1/2"
-              aria-label="Search"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
-          
           <ThemeToggle />
           
           <Link to="/account">
@@ -188,6 +303,16 @@ export default function Header() {
         
         {/* Mobile menu */}
         <div className="flex items-center md:hidden gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            onClick={() => setShowSuggestions(!showSuggestions)}
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+          
           <ThemeToggle />
           
           <Link to="/cart" className="relative">
@@ -213,6 +338,116 @@ export default function Header() {
           </Button>
         </div>
       </div>
+      
+      {/* Mobile search bar overlay */}
+      {showSuggestions && (
+        <div className="md:hidden border-b">
+          <div className="container py-3">
+            <div className="relative" ref={searchResultsRef}>
+              <form onSubmit={handleSearch} className="relative w-full">
+                <Input
+                  type="search"
+                  placeholder="Search products..."
+                  className="pr-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                />
+                <button 
+                  type="submit" 
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  aria-label="Search"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </form>
+              
+              {/* Mobile search results */}
+              {searchQuery.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 max-h-60 overflow-auto">
+                  {isLoadingProducts ? (
+                    <div className="p-4 space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <Skeleton className="h-10 w-10 rounded" />
+                          <div className="space-y-1 flex-1">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/4" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredProducts.length > 0 ? (
+                    <div>
+                      {filteredProducts.map((product: Product) => (
+                        <div 
+                          key={product.id}
+                          className="flex items-center gap-3 p-2 hover:bg-muted cursor-pointer"
+                          onClick={() => handleProductClick(product.id)}
+                        >
+                          <div className="h-10 w-10 bg-muted rounded overflow-hidden">
+                            <img 
+                              src={product.images[0]} 
+                              alt={product.name}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <div className="font-medium">{product.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              ${(product.sale || product.price).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      <div className="p-2 border-t">
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start text-primary" 
+                          size="sm"
+                          onClick={() => {
+                            handleSearch({ preventDefault: () => {} } as React.FormEvent);
+                          }}
+                        >
+                          <Search className="mr-2 h-4 w-4" />
+                          Search for "{searchQuery}"
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      No results found for "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Mobile categories */}
+            <div className="flex items-center gap-3 text-sm overflow-x-auto py-2 scrollbar-hide">
+              {isLoadingCategories ? (
+                <div className="flex gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-4 w-16" />
+                  ))}
+                </div>
+              ) : (
+                categories.map((category) => (
+                  <Link 
+                    key={category.id}
+                    to={`/category/${category.slug}`}
+                    className="hover:text-primary transition-colors whitespace-nowrap"
+                    onClick={() => setShowSuggestions(false)}
+                  >
+                    {category.name}
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
