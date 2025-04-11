@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SocialButtons from "@/components/SocialButtons";
+import ScrollToTop from "@/components/ScrollToTop";
 
 // Pages
 import Home from "@/pages/Home";
@@ -18,6 +19,13 @@ import Account from "@/pages/Account";
 import NotFound from "@/pages/NotFound";
 import Blog from "@/pages/Blog";
 import BlogDetail from "@/pages/BlogDetail";
+
+// Auth Pages
+import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
+import ForgotPassword from "@/pages/auth/ForgotPassword";
+import ResetPassword from "@/pages/auth/ResetPassword";
+import OtpVerification from "@/pages/auth/OtpVerification";
 
 // Account Pages
 import AccountInfo from "@/pages/account/AccountInfo";
@@ -34,7 +42,7 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <CartProvider>
           <BrowserRouter>
-            <div className="flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen max-w-[1440px] mx-auto">
               <Header />
               <main className="flex-1">
                 <Routes>
@@ -45,6 +53,13 @@ function App() {
                   <Route path="/search" element={<ProductListing />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />
+                  
+                  {/* Auth Routes */}
+                  <Route path="/auth/login" element={<Login />} />
+                  <Route path="/auth/register" element={<Register />} />
+                  <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/auth/reset-password" element={<ResetPassword />} />
+                  <Route path="/auth/otp-verification" element={<OtpVerification />} />
                   
                   {/* Blog Routes */}
                   <Route path="/blog" element={<Blog />} />
@@ -68,6 +83,9 @@ function App() {
             
             {/* Social floating buttons */}
             <SocialButtons />
+            
+            {/* Scroll to top button */}
+            <ScrollToTop />
             
             <Toaster />
           </BrowserRouter>

@@ -1,377 +1,341 @@
 
-import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
-import ProductGrid from "@/components/ProductGrid";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { 
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import { ArrowRight, ArrowUpRight, Star } from "lucide-react";
-import { useState, useEffect, useCallback, useRef } from "react";
-import ReviewCard from "@/components/ReviewCard";
-import BreadcrumbBar from "@/components/BreadcrumbBar";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import ProductCard from "@/components/ProductCard";
+import ProductGrid from "@/components/ProductGrid";
+import api from "@/lib/api";
 
 export default function Home() {
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: () => api.getProducts(),
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [autoplayInterval, setAutoplayInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  const { data: featuredProducts = [], isLoading: isLoadingFeatured } = useQuery({
+    queryKey: ["products", "featured"],
+    queryFn: () => api.getFeaturedProducts()
   });
   
-  const featuredProducts = products.slice(0, 4);
-  const newArrivals = products.filter(product => product.new);
-  const onSale = products.filter(product => product.sale);
+  const { data: newArrivals = [], isLoading: isLoadingNew } = useQuery({
+    queryKey: ["products", "new"],
+    queryFn: () => api.getNewArrivals()
+  });
   
-  const [currentBanner, setCurrentBanner] = useState(0);
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const autoSlideTimerRef = useRef<NodeJS.Timeout | null>(null);
-
+  const { data: blogPosts = [], isLoading: isLoadingBlog } = useQuery({
+    queryKey: ["blog", "featured"],
+    queryFn: () => api.getFeaturedBlogPosts()
+  });
+  
+  // Banner images
   const banners = [
-    {
-      title: "Summer Collection",
-      description: "Discover our new summer styles with up to 30% off",
+    { 
+      image: "https://placehold.co/1200x400/3b82f6/ffffff?text=Summer+Collection", 
+      title: "Summer Collection", 
+      subtitle: "Discover our new arrivals",
       cta: "Shop Now",
-      link: "/category/fashion",
-      bgColor: "from-orange-400 to-pink-500",
-      image: "/placeholder.svg",
+      link: "/category/summer"
     },
-    {
-      title: "Premium Accessories",
-      description: "Elevate your look with our exclusive luxury accessories",
-      cta: "View Collection",
-      link: "/category/accessories",
-      bgColor: "from-blue-400 to-indigo-600",
-      image: "/placeholder.svg",
+    { 
+      image: "https://placehold.co/1200x400/a855f7/ffffff?text=Exclusive+Deals", 
+      title: "Exclusive Deals", 
+      subtitle: "Up to 50% off on selected items",
+      cta: "View Offers",
+      link: "/category/sale"
     },
-    {
-      title: "New Arrivals",
-      description: "Be the first to shop our latest collection",
+    { 
+      image: "https://placehold.co/1200x400/ec4899/ffffff?text=New+Season", 
+      title: "New Season", 
+      subtitle: "Spring/Summer 2025 collection",
       cta: "Explore",
-      link: "/category/new",
-      bgColor: "from-emerald-400 to-cyan-500",
-      image: "/placeholder.svg",
-    },
+      link: "/category/new"
+    }
   ];
-
-  // Function to advance the banner
-  const advanceBanner = useCallback(() => {
-    setCurrentBanner((current) => (current + 1) % banners.length);
-    
-    // Force the carousel to move
-    if (carouselRef.current) {
-      const nextIndex = (currentBanner + 1) % banners.length;
-      const carouselItems = carouselRef.current.querySelectorAll('[data-embla-slide]');
-      if (carouselItems && carouselItems[nextIndex]) {
-        (carouselItems[nextIndex] as HTMLElement).click();
-      }
-    }
-  }, [banners.length, currentBanner]);
-
-  // Set up auto-rotation for banners
+  
+  // Setup auto-rotation for banner carousel
   useEffect(() => {
-    if (autoSlideTimerRef.current) {
-      clearInterval(autoSlideTimerRef.current);
+    // Clear any existing interval
+    if (autoplayInterval) {
+      clearInterval(autoplayInterval);
     }
     
-    autoSlideTimerRef.current = setInterval(advanceBanner, 5000);
+    // Set new interval
+    const interval = setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % banners.length);
+    }, 5000);
     
+    setAutoplayInterval(interval);
+    
+    // Cleanup on unmount
     return () => {
-      if (autoSlideTimerRef.current) {
-        clearInterval(autoSlideTimerRef.current);
+      if (autoplayInterval) {
+        clearInterval(autoplayInterval);
       }
     };
-  }, [advanceBanner]);
+  }, [banners.length]);
   
-  const reviews = [
-    {
-      id: 1,
-      name: "Sarah Thompson",
-      avatar: "/placeholder.svg",
-      rating: 5,
-      comment: "The quality of these products exceeded my expectations. I've already ordered more!",
-      date: "2 days ago"
-    },
-    {
-      id: 2,
-      name: "Michael Rodriguez",
-      avatar: "/placeholder.svg",
-      rating: 4,
-      comment: "Very stylish and comfortable. Would definitely recommend to friends and family.",
-      date: "1 week ago"
-    },
-    {
-      id: 3,
-      name: "Emma Walker",
-      avatar: "/placeholder.svg",
-      rating: 5,
-      comment: "Amazing service and the products arrived earlier than expected. Very satisfied!",
-      date: "2 weeks ago"
-    },
-    {
-      id: 4,
-      name: "David Chen",
-      avatar: "/placeholder.svg",
-      rating: 4,
-      comment: "Great value for the price. The sizing was perfect and the quality is outstanding.",
-      date: "3 weeks ago"
-    },
-    {
-      id: 5,
-      name: "Jennifer Wilson",
-      avatar: "/placeholder.svg",
-      rating: 5,
-      comment: "These are now my go-to for all my fashion needs. The attention to detail is impressive.",
-      date: "1 month ago"
+  // Handle dot indicator click
+  const handleDotClick = (index: number) => {
+    setActiveSlide(index);
+    
+    // Reset the autoplay timer when manually changing slides
+    if (autoplayInterval) {
+      clearInterval(autoplayInterval);
     }
-  ];
-  
+    
+    const interval = setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % banners.length);
+    }, 5000);
+    
+    setAutoplayInterval(interval);
+  };
+
   return (
-    <div className="container py-8 space-y-12">
-      <BreadcrumbBar items={[{ label: "Home" }]} />
-      
-      <section className="relative rounded-lg overflow-hidden h-[70vh] min-h-[400px] flex items-center">
-        <div className="absolute inset-0 bg-black/70 z-0"></div>
-        <div className="relative z-10 container px-4 py-16 text-white text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 animate-fade-in">
-            Elevate Your Style
-          </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            Discover the latest trends in fashion, accessories, shoes, and hats
-          </p>
-          <div className="flex justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.4s" }}>
-            <Button asChild size="lg">
-              <Link to="/category/fashion">Shop Now</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link to="/category/new">New Arrivals</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-      
-      <section className="py-6">
-        <Carousel 
-          className="w-full" 
-          ref={carouselRef}
-          onSelect={(selectedIndex) => {
-            setCurrentBanner(selectedIndex);
-            
-            // Reset the auto-slide timer when manually selecting a slide
-            if (autoSlideTimerRef.current) {
-              clearInterval(autoSlideTimerRef.current);
-              autoSlideTimerRef.current = setInterval(advanceBanner, 5000);
-            }
-          }}
-        >
-          <CarouselContent>
-            {banners.map((banner, index) => (
-              <CarouselItem key={index}>
-                <div className={`relative overflow-hidden rounded-lg bg-gradient-to-r ${banner.bgColor} h-[250px] md:h-[300px] w-full`}>
-                  <div className="absolute inset-0 flex p-8 md:p-12">
-                    <div className="flex flex-col justify-center max-w-lg">
-                      <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                        {banner.title}
-                      </h2>
-                      <p className="text-white/90 mb-6 max-w-md">
-                        {banner.description}
-                      </p>
-                      <div>
-                        <Button asChild size="lg" variant="secondary" className="group">
-                          <Link to={banner.link}>
-                            {banner.cta}
-                            <ArrowUpRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="hidden md:flex items-center justify-end flex-1">
-                      <img 
-                        src={banner.image} 
-                        alt={banner.title} 
-                        className="max-h-full object-contain" 
-                      />
-                    </div>
+    <div className="space-y-16 py-8">
+      {/* Hero banner */}
+      <section className="relative overflow-hidden">
+        <div className="relative">
+          {banners.map((banner, index) => (
+            <div 
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === activeSlide ? "opacity-100 z-10" : "opacity-0 z-0"
+              }`}
+            >
+              <div className="relative h-[400px] w-full overflow-hidden rounded-xl">
+                <img 
+                  src={banner.image} 
+                  alt={banner.title} 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent flex flex-col justify-center p-8 md:p-16">
+                  <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-4">
+                    {banner.title}
+                  </h1>
+                  <p className="text-white/80 text-lg md:text-xl mb-4 md:mb-8 max-w-md">
+                    {banner.subtitle}
+                  </p>
+                  <div>
+                    <Button asChild size="lg" className="rounded-full">
+                      <Link to={banner.link}>
+                        {banner.cta}
+                      </Link>
+                    </Button>
                   </div>
                 </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="left-4" />
-          <CarouselNext className="right-4" />
-          
-          {/* Carousel indicators */}
-          <div className="flex justify-center gap-2 mt-4">
-            {banners.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setCurrentBanner(index);
-                  // Find and click the corresponding carousel item
-                  if (carouselRef.current) {
-                    const carouselItems = carouselRef.current.querySelectorAll('[data-embla-slide]');
-                    if (carouselItems && carouselItems[index]) {
-                      (carouselItems[index] as HTMLElement).click();
-                    }
-                  }
-                }}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  currentBanner === index 
-                    ? "bg-primary w-4" 
-                    : "bg-muted"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        </Carousel>
-      </section>
-      
-      <section className="py-12">
-        <h2 className="text-3xl font-bold text-center mb-8">Shop By Category</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { name: "Fashion", image: "/placeholder.svg", slug: "fashion" },
-            { name: "Accessories", image: "/placeholder.svg", slug: "accessories" },
-            { name: "Shoes", image: "/placeholder.svg", slug: "shoes" },
-            { name: "Hats", image: "/placeholder.svg", slug: "hats" },
-          ].map((category) => (
-            <Link 
-              key={category.slug}
-              to={`/category/${category.slug}`} 
-              className="relative rounded-lg overflow-hidden group hover-scale"
-            >
-              <div className="aspect-[4/3]">
-                <img
-                  src={category.image}
-                  alt={category.name}
-                  className="object-cover w-full h-full"
-                />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-all"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <h3 className="text-white text-2xl font-bold">{category.name}</h3>
-                </div>
               </div>
-            </Link>
+            </div>
+          ))}
+        </div>
+        
+        {/* Dots navigation */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              className={`w-3 h-3 rounded-full transition-all ${
+                index === activeSlide ? "bg-white scale-110" : "bg-white/50"
+              }`}
+              onClick={() => handleDotClick(index)}
+              aria-label={`Go to slide ${index + 1}`}
+            />
           ))}
         </div>
       </section>
       
-      <section className="py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">What Our Customers Say</h2>
-            <p className="text-muted-foreground">Trusted by fashion enthusiasts worldwide</p>
+      {/* Featured Categories */}
+      <section className="container px-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="relative rounded-lg overflow-hidden h-48 md:h-64 group cursor-pointer">
+            <img 
+              src="https://placehold.co/600x400/3b82f6/ffffff?text=Fashion" 
+              alt="Fashion"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
+              <Link to="/category/fashion" className="text-white font-medium text-lg">Fashion</Link>
+            </div>
+          </div>
+          
+          <div className="relative rounded-lg overflow-hidden h-48 md:h-64 group cursor-pointer">
+            <img 
+              src="https://placehold.co/600x400/a855f7/ffffff?text=Accessories" 
+              alt="Accessories"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
+              <Link to="/category/accessories" className="text-white font-medium text-lg">Accessories</Link>
+            </div>
+          </div>
+          
+          <div className="relative rounded-lg overflow-hidden h-48 md:h-64 group cursor-pointer">
+            <img 
+              src="https://placehold.co/600x400/ec4899/ffffff?text=Footwear" 
+              alt="Footwear"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
+              <Link to="/category/footwear" className="text-white font-medium text-lg">Footwear</Link>
+            </div>
+          </div>
+          
+          <div className="relative rounded-lg overflow-hidden h-48 md:h-64 group cursor-pointer">
+            <img 
+              src="https://placehold.co/600x400/64748b/ffffff?text=Jewelry" 
+              alt="Jewelry"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
+              <Link to="/category/jewelry" className="text-white font-medium text-lg">Jewelry</Link>
+            </div>
           </div>
         </div>
-        
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-          className="w-full"
-        >
-          <CarouselContent>
-            {reviews.map((review) => (
-              <CarouselItem key={review.id} className="basis-full sm:basis-1/2 md:basis-1/3 pl-4">
-                <ReviewCard {...review} />
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="left-2" />
-          <CarouselNext className="right-2" />
-        </Carousel>
       </section>
       
-      {newArrivals.length > 0 && (
-        <section className="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-8">
-          <div className="flex justify-between items-center mb-6">
+      {/* Featured Products */}
+      <section className="container px-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Featured Products</h2>
+          <Link to="/products" className="text-sm flex items-center hover:text-primary transition-colors">
+            View All <ChevronRight className="h-4 w-4 ml-1" />
+          </Link>
+        </div>
+        
+        {isLoadingFeatured ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="space-y-3">
+                <Skeleton className="h-52 md:h-64 w-full rounded-lg" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Carousel className="mt-6">
+            <CarouselContent>
+              {featuredProducts.map((product) => (
+                <CarouselItem key={product.id} className="sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                  <ProductCard product={product} />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-2 lg:-left-12" />
+            <CarouselNext className="right-2 lg:-right-12" />
+          </Carousel>
+        )}
+      </section>
+      
+      {/* Promotional Banner */}
+      <section className="container px-4">
+        <div className="relative rounded-xl overflow-hidden h-64 md:h-80">
+          <img 
+            src="https://placehold.co/1200x400/2dd4bf/ffffff?text=Special+Offer" 
+            alt="Special Offer"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center p-8 md:p-16">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Special Offer</h2>
+            <p className="text-white/80 mb-4 max-w-md">
+              Get 20% off on selected items. Limited time offer.
+            </p>
             <div>
-              <h2 className="text-2xl font-bold">New Arrivals</h2>
-              <p className="text-muted-foreground">Check out our latest products</p>
+              <Button asChild>
+                <Link to="/category/sale">Shop Now</Link>
+              </Button>
             </div>
-            <Button asChild variant="outline" className="group">
-              <Link to="/category/new">
-                View All
-                <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+          </div>
+        </div>
+      </section>
+      
+      {/* New Arrivals */}
+      <section className="container px-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">New Arrivals</h2>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/products" className="flex items-center">
+              View All <ChevronRight className="h-4 w-4 ml-1" />
+            </Link>
+          </Button>
+        </div>
+        
+        {isLoadingNew ? (
+          <ProductGrid isLoading skeletonCount={8} />
+        ) : (
+          <ProductGrid products={newArrivals.slice(0, 8)} />
+        )}
+      </section>
+      
+      {/* Blog Section */}
+      <section className="bg-muted py-16">
+        <div className="container px-4">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold">Elevate Your Style</h2>
+            <Button asChild>
+              <Link to="/blog">New Arrivals</Link>
             </Button>
           </div>
           
-          <div className="relative">
-            <Carousel
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-              className="w-full"
-            >
-              <CarouselContent>
-                {newArrivals.map((product) => (
-                  <CarouselItem key={product.id} className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 pl-4">
-                    <div className="p-1">
-                      <div className="overflow-hidden rounded-lg border bg-card">
-                        <Link to={`/product/${product.id}`} className="block">
-                          <div className="aspect-square overflow-hidden">
-                            <img 
-                              src={product.images[0]} 
-                              alt={product.name}
-                              className="h-full w-full object-cover transition-transform hover:scale-105"
-                            />
-                          </div>
-                        </Link>
-                        <div className="p-4">
-                          <h3 className="font-medium truncate">{product.name}</h3>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="font-semibold">${product.price.toFixed(2)}</span>
-                            <Button 
-                              variant="secondary" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                // Add to cart logic would go here
-                              }}
-                            >
-                              Add to Cart
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+          {isLoadingBlog ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, index) => (
+                <div key={index} className="space-y-3">
+                  <Skeleton className="h-48 w-full rounded-lg" />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {blogPosts.slice(0, 3).map((post) => (
+                <Link 
+                  key={post.id} 
+                  to={`/blog/${post.slug}`}
+                  className="bg-background rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                >
+                  <div className="h-48 overflow-hidden">
+                    <img 
+                      src={post.image} 
+                      alt={post.title} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-medium text-lg mb-2 group-hover:text-primary transition-colors">{post.title}</h3>
+                    <p className="text-muted-foreground text-sm line-clamp-2">{post.excerpt}</p>
+                    <div className="mt-4 flex items-center text-xs text-muted-foreground">
+                      <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
+                      <span className="mx-2">•</span>
+                      <span>{post.readTime} min read</span>
                     </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
-            </Carousel>
-          </div>
-        </section>
-      )}
-      
-      {onSale.length > 0 && (
-        <section>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">On Sale</h2>
-            <Button asChild variant="ghost">
-              <Link to="/category/sale">View All</Link>
-            </Button>
-          </div>
-          <ProductGrid products={onSale.slice(0, 4)} />
-        </section>
-      )}
-      
-      <section>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Featured Products</h2>
-          <Button asChild variant="ghost">
-            <Link to="/products">View All</Link>
-          </Button>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
-        <ProductGrid products={featuredProducts} />
+      </section>
+      
+      {/* Newsletter Signup */}
+      <section className="container px-4">
+        <div className="bg-primary/5 rounded-xl p-8 md:p-12 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">Stay Updated</h2>
+          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+            Subscribe to our newsletter for exclusive offers, new arrivals, and fashion tips.
+          </p>
+          <form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+            <input 
+              type="email" 
+              placeholder="Your email address" 
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <Button type="submit">Subscribe</Button>
+          </form>
+        </div>
       </section>
     </div>
   );
