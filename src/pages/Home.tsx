@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, ShoppingBag } from "lucide-react";
-import { api } from "@/lib/api";
+import api from "@/lib/api";  // Changed from { api } to default import
 import { Category, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
